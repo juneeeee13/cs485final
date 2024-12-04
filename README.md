@@ -1,2 +1,3 @@
 # CS 485 - Game Programming Final Project
-# June Phillips, Kimberly Ard
+
+June Phillips, Kimberly Ard
