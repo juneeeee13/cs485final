@@ -91,37 +91,46 @@
         var current_state = "Idle";
         //ADDED current_states:
         document.addEventListener('keydown', (e) => {
-
             switch (e.key) {
                 case "ArrowLeft":
                     current_state = "West";
+                    console.log("arrow left used");
                     break;
                 case "ArrowRight":
                     current_state = "East";
+                    console.log("arrow right used");
                     break;
                 case "ArrowUp":
                     current_state = "North";
+                    console.log("arrow up used");
                     break;
                 case "ArrowDown":
                     current_state = "South";
+                    console.log("arrow down used");
                     break;
                 case "a":
                     current_state = "West";
+                    console.log("a key used");
                     break;
                 case "d":
                     current_state = "East";
+                    console.log("d key used");
                     break;
                 case "w":
                     current_state = "North";
+                    console.log("w key used");
                     break;
                 case "s":
                     current_state = "South";
+                    console.log("s key used");
                     break;
             }
         })
         //Above was }); (deleted ;)
         document.addEventListener('keyup', (e) => {
+            console.log(`Key released: ${e.key}`);
             current_state = 'Idle';
+            console.log("State changed to: Idle");
         });
 
         class Sprite {
@@ -714,12 +723,15 @@
                 redraw_background();
                 var num_of_sprites = mysprites.length;
                 for (i = 0; i < num_of_sprites; i++) {
-                    mysprites[i].run();
+                    mysprites[i].run();\
+
                 }
                 last_run_loop = cur_time;
             }
             requestAnimationFrame(run_loop);
         }
+
+
         
         var mysprites = [];
         var last_run_loop;
