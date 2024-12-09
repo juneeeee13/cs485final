@@ -1,38 +1,48 @@
 <html>
 <head>
-<script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
-<style>
-{ margin:0; padding:0; } /* to remove the top and left whitespace */
-html, body { width:100%; height:100%; } /* just to be sure these are full screen*/
+    <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
+    <style>
+        {
+            margin: 0;
+            padding: 0;
+        }
+        /* to remove the top and left whitespace */
+        html, body {
+            width: 100%;
+            height: 100%;
+        }
+        /* just to be sure these are full screen*/
 
 
-canvas { display:block; } /* To remove the scrollbars */
+        canvas {
+            display: block;
+        }
+        /* To remove the scrollbars */
 
-    canvas {
-        display: block;
-        position: absolute;
-        top: 0;
-        left: 0;
-        z-index: 1;
-    }
-    /* Keeps canvas on top */
+        canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        /* Keeps canvas on top */
 
-    body {
-        background: url('Penguins/Imgs/IceSparkleBackground.png') no-repeat center center fixed;
-        background-size: cover; /* Ensures the image covers the entire screen */
-    }
+        body {
+            background: url('Penguins/Imgs/GhostGraveyardBackground.jpg') no-repeat center center fixed;
+            background-size: cover; /* Ensures the image covers the entire screen */
+        }
 
-    #snowLayer {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        pointer-events: none; /* Ensures it doesn't interfere with input */
-        z-index: 999; /* Ensures it stays on top */
-    }
-
-</style>
+        #snowLayer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none; /* Ensures it doesn't interfere with input */
+            z-index: 999; /* Ensures it stays on top */
+        }
+    </style>
 
 </head>
 <body>
@@ -116,7 +126,7 @@ canvas { display:block; } /* To remove the scrollbars */
                 this.last_action = 'idle' //Change to idle instead of walk_SE
                 this.sprite_data = []
 
-                this.scale = 1.25;
+                this.scale = .35;
 
                 this.acceleration = [0, 0]; //CAN CHANGE THIS FOR SPEED (Neg makes in 2nd it go up) (neg in 1st num makes go left)
 
@@ -497,21 +507,218 @@ canvas { display:block; } /* To remove the scrollbars */
             }
         }
 
-        //SHOULDNT NEED TO TOUCH
-        function run_loop() {
 
+
+        class Boid extends Sprite {
+            constructor(jsonfile, x, y, sprite_name) {
+                super(jsonfile, x, y, sprite_name);
+                this.maxSpeed = 3; // Adjust speed as necessary
+                this.maxForce = 0.05; // Limit on steering force
+                this.acceleration = [0, 0];
+                this.velocity = [Math.random() * 2 - 1, Math.random() * 2 - 1]; // Random initial velocity
+            }
+
+            // Calculate alignment force
+            align(boids) {
+                const perceptionRadius = 50;
+                let steering = [0, 0];
+                let total = 0;
+
+                for (let other of boids) {
+                    const dist = this.distance(other);
+                    if (other !== this && dist < perceptionRadius) {
+                        steering[0] += other.velocity[0];
+                        steering[1] += other.velocity[1];
+                        total++;
+                    }
+                }
+
+                if (total > 0) {
+                    steering[0] /= total;
+                    steering[1] /= total;
+                    this.normalize(steering);
+                    steering[0] *= this.maxSpeed;
+                    steering[1] *= this.maxSpeed;
+                    steering[0] -= this.velocity[0];
+                    steering[1] -= this.velocity[1];
+                    this.limit(steering, this.maxForce);
+                }
+
+                return steering;
+            }
+
+            // Calculate cohesion force
+            cohesion(boids) {
+                const perceptionRadius = 50;
+                let steering = [0, 0];
+                let total = 0;
+
+                for (let other of boids) {
+                    const dist = this.distance(other);
+                    if (other !== this && dist < perceptionRadius) {
+                        steering[0] += other.x_location;
+                        steering[1] += other.y_location;
+                        total++;
+                    }
+                }
+
+                if (total > 0) {
+                    steering[0] /= total;
+                    steering[1] /= total;
+                    steering[0] -= this.x_location;
+                    steering[1] -= this.y_location;
+                    this.normalize(steering);
+                    steering[0] *= this.maxSpeed;
+                    steering[1] *= this.maxSpeed;
+                    steering[0] -= this.velocity[0];
+                    steering[1] -= this.velocity[1];
+                    this.limit(steering, this.maxForce);
+                }
+
+                return steering;
+            }
+
+            // Calculate separation force
+            separate(boids) {
+                const perceptionRadius = 30;
+                let steering = [0, 0];
+                let total = 0;
+
+                for (let other of boids) {
+                    const dist = this.distance(other);
+                    if (other !== this && dist < perceptionRadius) {
+                        const diff = [this.x_location - other.x_location, this.y_location - other.y_location];
+                        this.normalize(diff);
+                        diff[0] /= dist;
+                        diff[1] /= dist;
+                        steering[0] += diff[0];
+                        steering[1] += diff[1];
+                        total++;
+                    }
+                }
+
+                if (total > 0) {
+                    steering[0] /= total;
+                    steering[1] /= total;
+                    this.normalize(steering);
+                    steering[0] *= this.maxSpeed;
+                    steering[1] *= this.maxSpeed;
+                    steering[0] -= this.velocity[0];
+                    steering[1] -= this.velocity[1];
+                    this.limit(steering, this.maxForce);
+                }
+
+                return steering;
+            }
+
+            // Combine all forces
+            flock(boids) {
+                const alignment = this.align(boids);
+                const cohesion = this.cohesion(boids);
+                const separation = this.separate(boids);
+
+                this.acceleration[0] += alignment[0] + cohesion[0] + separation[0];
+                this.acceleration[1] += alignment[1] + cohesion[1] + separation[1];
+            }
+
+            run(boids) {
+                this.flock(boids);
+
+                // Update velocity and position
+                this.velocity[0] += this.acceleration[0];
+                this.velocity[1] += this.acceleration[1];
+                this.limit(this.velocity, this.maxSpeed);
+
+                this.x_location += this.velocity[0];
+                this.y_location += this.velocity[1];
+                this.acceleration = [0, 0];
+
+                // Handle edge collisions
+                this.handleEdges();
+
+                // Draw the boid
+                super.run();
+            }
+
+            handleEdges() {
+                let edgeHit = false;
+
+                // Check for edge collisions
+                if (this.x_location <= 0) {
+                    this.x_location = 0;
+                    edgeHit = true;
+                } else if (this.x_location >= window.innerWidth) {
+                    this.x_location = window.innerWidth;
+                    edgeHit = true;
+                }
+
+                if (this.y_location <= 0) {
+                    this.y_location = 0;
+                    edgeHit = true;
+                } else if (this.y_location >= window.innerHeight) {
+                    this.y_location = window.innerHeight;
+                    edgeHit = true;
+                }
+
+                // Change direction if edge is hit
+                if (edgeHit) {
+                    const randomAngle = Math.random() * Math.PI * 2; // Random angle in radians
+                    this.velocity[0] = Math.cos(randomAngle) * this.maxSpeed;
+                    this.velocity[1] = Math.sin(randomAngle) * this.maxSpeed;
+                }
+            }
+
+            // Helper functions
+            distance(other) {
+                return Math.sqrt((this.x_location - other.x_location) ** 2 + (this.y_location - other.y_location) ** 2);
+            }
+
+            normalize(vector) {
+                const mag = Math.sqrt(vector[0] ** 2 + vector[1] ** 2);
+                if (mag > 0) {
+                    vector[0] /= mag;
+                    vector[1] /= mag;
+                }
+            }
+
+            limit(vector, max) {
+                const mag = Math.sqrt(vector[0] ** 2 + vector[1] ** 2);
+                if (mag > max) {
+                    vector[0] = (vector[0] / mag) * max;
+                    vector[1] = (vector[1] / mag) * max;
+                }
+            }
+        }
+
+
+
+
+
+        //SHOULDNT NEED TO TOUCH
+        // Update the run loop to include boids
+        function run_loop() {
             var cur_time = Date.now();
 
+            // Clear the canvas
+            const context = canvas.getContext('2d');
+            context.clearRect(0, 0, canvas.width, canvas.height);
 
-            if ((cur_time - last_run_loop) >= (1000 / 10)) {
-                var num_of_sprites = mysprites.length;
-                for (i = 0; i < num_of_sprites; i++) {
-                    mysprites[i].run();
+            if ((cur_time - last_run_loop) >= (1000 / 60)) {
+                for (let i = 0; i < mysprites.length; i++) {
+                    if (mysprites[i] instanceof Boid) {
+                        mysprites[i].run(mysprites);
+                    } else {
+                        mysprites[i].run();
+                    }
                 }
                 last_run_loop = cur_time;
             }
             requestAnimationFrame(run_loop);
         }
+
+
+
+
         //CHANGED: mysprites.push( new Sprite("Penguins/animationData.json", 0, 0, 'TenderBud'));
         var mysprites = [];
         var last_run_loop;
@@ -524,9 +731,17 @@ canvas { display:block; } /* To remove the scrollbars */
                     audio.play();
                 }
             }, { once: true });
-            mysprites.push(new Key_Control_Sprite("Penguins/animationData.json", 350, 350, 'TenderBud'));
-            mysprites.push(new Bouncy("Penguins/animationData.json", 100, 100, 'TenderBud'));
-            mysprites.push(new Bouncy("Penguins/animationData.json", 600, 600, 'TenderBud'));
+            //mysprites.push(new Key_Control_Sprite("Penguins/animationData.json", 350, 350, 'TenderBud'));
+            //mysprites.push(new Bouncy("Penguins/animationData.json", 100, 100, 'TenderBud'));
+            //mysprites.push(new Bouncy("Penguins/animationData.json", 600, 600, 'TenderBud'));
+            //mysprites.push(new Boid("Penguins/animationData.json", 200, 200, 'TenderBud'));
+            //mysprites.push(new Boid("Penguins/animationData.json", 400, 300, 'TenderBud'));
+            //mysprites.push(new Boid("Penguins/animationData.json", 600, 100, 'TenderBud'));
+            for (let i = 0; i < 25; i++) { // Create 10 boids, for example
+                const randomX = Math.random() * window.innerWidth;
+                const randomY = Math.random() * window.innerHeight;
+                mysprites.push(new Boid("Penguins/animationData.json", randomX, randomY, 'TenderBud'));
+            }
             last_run_loop = Date.now();
             requestAnimationFrame(run_loop);
         });
