@@ -1,0 +1,673 @@
+<html>
+<head>
+<script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/p5@1.11.2/lib/p5.min.js"></script>
+<style>
+{ margin:0; padding:0; } /* to remove the top and left whitespace */
+html, body { width:100%; height:100%; } /* just to be sure these are full screen*/
+
+canvas { display:block; } /* To remove the scrollbars */
+</style>
+
+</head>
+<body>
+
+    <canvas id="main_canvas"></canvas>
+
+    <script>
+
+        (function () {
+            const canvas = document.getElementById('main_canvas');
+            const context = canvas.getContext('2d');
+
+            // resize the canvas to fill browser window dynamically
+            window.addEventListener('resize', resizeCanvas, false);
+
+            function resizeCanvas() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                do_i_need_to_redraw = true;
+            }
+
+            resizeCanvas();
+
+        })();
+
+        var current_state = "Idle";         //ADDED Glabal variable
+        
+        document.addEventListener('keydown', (e) => {
+
+            switch (e.key) {
+                case "ArrowLeft":
+                    current_state = "West";
+                    break;
+                case "ArrowRight":
+                    current_state = "East";
+                    break;
+                case "ArrowUp":
+                    current_state = "North";
+                    break;
+                case "ArrowDown":
+                    current_state = "South";
+                    break;
+            }
+        })
+        
+        document.addEventListener('keyup', (e) => {
+            current_state = 'Idle';
+        });
+
+        class Sprite {
+            constructor(jsonfile, x, y, sprite_name) {
+
+                this.position = createVector(x, y);
+                this.velocity = p5.Vector.random2D();
+                this.velocity.setMag(random(5, 50));
+
+                this.maxSpeed = 40;
+                this.maxForce = 5;
+
+                this.sprite_name = sprite_name;
+
+                this.animations = {};
+
+                this.cur_frame = 0;
+
+                this.cur_action = 'idle' 
+                this.last_action = 'idle'
+                this.sprite_data = []
+
+                this.scale = .5;
+
+                this.acceleration = createVector();
+
+                this.clipboard = null;
+
+                this.cur_frame_h = 0;
+                this.cur_frame_w = 0;
+
+                const pathStrSplit = jsonfile.split('/')
+                const fileName = pathStrSplit.pop()
+                const directoryName = pathStrSplit.join('/')
+
+                this.img_path = directoryName + '/' + sprite_name
+                var sprite_this = this
+
+                $.getJSON(jsonfile, function (data) {
+                    sprite_this.sprite_data = data
+                    for (const property in data[sprite_this.sprite_name]) {
+                        sprite_this.animations[property] = { 'name': property, 'meta': data[sprite_name][property], 'imgs': [] }
+                    }
+                });
+            }
+
+            draw_or_load_the_damn_thing() {
+                var action = this.animations[this.cur_action]
+
+                try {
+                    if (this.cur_frame >= action["meta"].length) {
+                        this.cur_frame = 0
+                    }
+                } catch (error) {
+                    return
+                } //json not loaded yet.
+
+                var frame = this.cur_frame
+
+                if (action["imgs"][frame] == null) {
+                    action["imgs"][frame] = new Image()
+                    action["imgs"][frame].src = this.img_path + '/' + action['name'] + '/' + frame + '.png'
+                }
+
+
+
+                var c = document.getElementById("main_canvas");
+                var ctx = c.getContext("2d");
+
+                try {
+                    ctx.putImageData(this.clipboard, this.position.x - this.velocity.x,
+                        this.position.y - this.velocity.y);
+                } catch (error) {
+                }
+
+                try {
+                    this.clipboard = ctx.getImageData(this.position.x, this.position.y,
+                        (action["meta"][frame]['w'] + 1) * this.scale, (action["meta"][frame]['h'] + 1) * this.scale);
+                } catch (error) {
+                    console.log(error)
+                }
+
+                try {
+                    ctx.drawImage(action["imgs"][frame], this.position.x, this.position.y,
+                    action["meta"][frame]['w'] * this.scale, action["meta"][frame]['h'] * this.scale);
+                    this.cur_frame_h = action["meta"][frame]['h'] * this.scale;
+                    this.cur_frame_w = action["meta"][frame]['h'] * this.scale;
+                    this.cur_frame = this.cur_frame + 1;
+                } catch (error) {
+                }
+            }
+            
+            idle() {
+                this.draw_or_load_the_damn_thing()
+            }
+
+            walk_SE() {
+                this.draw_or_load_the_damn_thing()
+            }
+            walk_SW() {
+                this.draw_or_load_the_damn_thing()
+            }
+            walk_NE() {
+                this.draw_or_load_the_damn_thing()
+            }
+            walk_NW() {
+                this.draw_or_load_the_damn_thing()
+            }
+            walk_S() {
+                this.draw_or_load_the_damn_thing()
+            }
+            walk_E() {
+                this.draw_or_load_the_damn_thing()
+            }
+            walk_W() {
+                this.draw_or_load_the_damn_thing()
+            }
+            walk_N() {
+                this.draw_or_load_the_damn_thing()
+            }
+            
+            set_action(new_action) {
+                this.last_action = this.cur_action
+                this.cur_action = new_action
+                try {
+                    var c = document.getElementById("main_canvas");
+                    var ctx = c.getContext("2d");
+                    ctx.putImageData(this.clipboard, this.position.x - this.velocity.x,
+                        this.position.y - this.velocity.y);
+                } catch (error) {
+                }
+                this.clipboard = null
+                this.cur_frame = 0
+            }
+
+            on_bound_hit_north() {
+                this.velocity.y = this.velocity.y * -1;
+                console.log("North Hit");
+            }
+            on_bound_hit_south() {
+                this.velocity.y = this.velocity.y * -1;
+                console.log("South Hit");
+            }
+            on_bound_hit_east() {
+                this.velocity.x = this.velocity.x * -1;
+            }
+
+            on_bound_hit_west() {
+                this.velocity.x = this.velocity.x * -1;
+            }
+
+            set_direction(direction) {
+
+                if (direction == 'SEast' && this.cur_action != 'walk_SE') {
+                    this.set_action('walk_SE')
+                }
+                if (direction == 'SWest' && this.cur_action != 'walk_SW') {
+                    this.set_action('walk_SW')
+                }
+                if (direction == 'NEast' && this.cur_action != 'walk_NE') {
+                    this.set_action('walk_NE')
+                }
+                if (direction == 'NWest' && this.cur_action != 'walk_NW') {
+                    this.set_action('walk_NW')
+                }
+                if (direction == 'East' && this.cur_action != 'walk_E') {
+                    this.set_action('walk_E')
+                }
+                if (current_state == 'West' && this.cur_action != 'walk_W') {
+                    this.set_action('walk_W')
+                }
+
+                if (current_state == 'South' && this.cur_action != 'walk_S') {
+                    this.set_action('walk_S')
+                }
+
+                if (current_state == 'North' && this.cur_action != 'walk_N') {
+                    this.set_action('walk_N')
+                }
+
+                if (current_state == 'Idle' && this.cur_action != 'idle') {
+                    this.set_action('idle')
+                }
+
+            }
+            set_direction_by_vel() {
+
+                var direction = 'Idle';
+
+                if (this.velocity.x > 0 && this.velocity.y > 0) {
+                    direction = 'SEast'
+                } else
+                    if (this.velocity.x == 0 && this.velocity.y > 0) {
+                        direction = 'South'
+                    }
+                if (this.velocity.x > 0 && this.velocity.y == 0) {
+                    direction = 'East'
+                }
+                if (this.velocity.x == 0 && this.velocity.y < 0) {
+                    direction = 'North'
+                }
+                if (this.velocity.x < 0 && this.velocity.y == 0) {
+                    direction = 'West'
+                }
+                if (this.velocity.x < 0 && this.velocity.y > 0) {
+                    direction = 'SWest'
+                }
+                if (this.velocity.x > 0 && this.velocity.y < 0) {
+                    direction = 'NEast'
+                }
+                if (this.velocity.x < 0 && this.velocity.y < 0) {
+                    direction = 'NWest'
+                }
+
+
+                if (direction == 'SEast' && this.cur_action != 'walk_SE') {
+                    this.set_action('walk_SE')
+                }
+                if (direction == 'SWest' && this.cur_action != 'walk_SW') {
+                    this.set_action('walk_SW')
+                }
+                if (direction == 'NEast' && this.cur_action != 'walk_NE') {
+                    this.set_action('walk_NE')
+                }
+                if (direction == 'NWest' && this.cur_action != 'walk_NW') {
+                    this.set_action('walk_NW')
+                }
+                if (direction == 'East' && this.cur_action != 'walk_E') {
+                    this.set_action('walk_E')
+                }
+                if (current_state == 'West' && this.cur_action != 'walk_W') {
+                    this.set_action('walk_W')
+                }
+
+                if (current_state == 'South' && this.cur_action != 'walk_S') {
+                    this.set_action('walk_S')
+                }
+
+                if (current_state == 'North' && this.cur_action != 'walk_N') {
+                    this.set_action('walk_N')
+                }
+
+                if (current_state == 'Idle' && this.cur_action != 'idle') {
+                    this.set_action('idle')
+                }
+            }
+
+            on_sprite_collision(sprite) {
+                console.log("OUCH! You bumped med!");
+                do_i_need_to_redraw = true;
+            }
+            did_i_hit_a_sprite() {
+                var num_of_sprites = mysprites.length;
+                var center_x = this.position.x + (this.cur_frame_w / 2);
+                var center_y = this.position.y + (this.cur_frame_h / 2);
+                var radius = Math.sqrt((this.cur_frame_w ** 2) + (this.cur_frame_h ** 2))
+
+                for (var i = 0; i < num_of_sprites; i++) {
+                    if (mysprites[i] != this) {
+                        var i_center_x = mysprites[i].x_location + (mysprites[i].cur_frame_w / 2);
+                        var i_center_y = mysprites[i].y_location + (mysprites[i].cur_frame_h / 2);
+                        if (Math.sqrt(((i_center_x - center_x) ** 2) + ((i_center_y - center_y) ** 2)) <= radius) {
+                            this.on_sprite_collision(mysprites[i])
+                        }
+                    }
+                }
+            }
+
+            update() {
+                this.set_direction_by_vel();
+                this.position.add(this.velocity);
+                this.velocity.add(this.acceleration);
+                this.velocity.limit(this.maxSpeed);
+                this.acceleration.mult(0);
+            }
+
+            flock(boids) {
+                let alignment = this.align(boids);
+                let cohesion = this.cohesion(boids);
+                let separation = this.separation(boids);
+
+                alignment.mult(.7);
+                cohesion.mult(.6);
+                separation.mult(.2);
+
+                this.acceleration.add(alignment);
+                this.acceleration.add(cohesion);
+                this.acceleration.add(separation);
+            }
+
+
+            separation(boids) {
+                let perceptionRadius = 100;
+                let steering = createVector();
+                let total = 0;
+                for (let other of boids) {
+                    let d = dist(
+                        this.position.x,
+                        this.position.y,
+                        other.position.x,
+                        other.position.y
+                    );
+                    if (other != this && d < perceptionRadius) {
+                        let diff = p5.Vector.sub(this.position, other.position);
+                        diff.div(d * d);
+                        steering.add(diff);
+                        total++;
+                    }
+                }
+                if (total > 0) {
+                    steering.div(total);
+                    steering.setMag(this.maxSpeed);
+                    steering.sub(this.velocity);
+                    steering.limit(this.maxForce);
+                }
+                return steering;
+            }
+
+            cohesion(boids) {
+                let perceptionRadius = 100;
+                let steering = createVector();
+                let total = 0;
+                for (let other of boids) {
+                    let d = dist(
+                        this.position.x,
+                        this.position.y,
+                        other.position.x,
+                        other.position.y
+                    );
+                    if (other != this && d < perceptionRadius) {
+                        steering.add(other.position);
+                        total++;
+                    }
+                }
+                if (total > 0) {
+                    steering.div(total);
+                    steering.sub(this.position);
+                    steering.setMag(this.maxSpeed);
+                    steering.sub(this.velocity);
+                    steering.limit(this.maxForce);
+                }
+                return steering;
+            }
+
+
+
+            align(boids) {
+                let perceptionRadius = 100;
+                let steering = createVector();
+                let total = 0;
+                for (let other of boids) {
+                    let d = dist(
+                        this.position.x,
+                        this.position.y,
+                        other.position.x,
+                        other.positiony
+                    );
+                    if (other != this && d < perceptionRadius) {
+                        steering.add(other.velocity);
+                        total++
+                    }
+                }
+                if (total > 0) {
+                    steering.div(total);
+                    steering.setMag(this.maxSpeed);
+                    steering.sub(this.velocity);
+                    steering.limit(this.maxForce);
+                }
+                return steering;
+            }
+
+            run() {
+
+                if (this.cur_action == 'idle') {
+                    this.idle();
+                } else
+                    if (this.cur_action == 'walk_SE') {
+                        this.walk_SE();
+                    } else
+                        if (this.cur_action == 'walk_NE') {
+                            this.walk_NE();
+                        } else
+                            if (this.cur_action == 'walk_SW') {
+                                this.walk_SW();
+                            } else
+                                if (this.cur_action == 'walk_NW') {
+                                    this.walk_NW();
+                                } else
+                                    if (this.cur_action == 'walk_E') {
+                                        this.walk_E();
+                                    } else
+                                        if (this.cur_action == 'walk_S') {
+                                            this.walk_S();
+                                        } else
+                                            if (this.cur_action == 'walk_W') {
+                                                this.walk_W();
+                                            } else
+                                                if (this.cur_action == 'walk_N') {
+                                                    this.walk_N();
+                                                }
+
+                this.update();
+                this.flock(mysprites);
+
+                if ((this.position.x + this.cur_frame_w) >= window.innerWidth) {
+                    this.on_bound_hit_east()
+                }
+
+                if ((this.position.y + this.cur_frame_h) >= window.innerHeight) {
+                    this.on_bound_hit_south()
+                }
+
+                if (this.position.x <= 0) {
+                    this.on_bound_hit_west()
+                }
+
+                if (this.position.y <= 0) {
+                    this.on_bound_hit_north()
+                }
+
+                try {
+                    this.did_i_hit_a_sprite()
+                } catch (error) {
+                    console.log(error);
+                }
+            }
+
+        }
+        
+        class Key_Control_Sprite extends Sprite {
+            run() {
+                this.set_direction(current_state);
+                super.run();
+            }
+
+            on_bound_hit_north() {
+                super.on_bound_hit_north();
+                background_img = north_background_img;
+                do_i_need_to_redraw = true;
+            }
+
+        }
+        //MOUSE CLICKING MOVEMENT:
+        //MAY NEED TO CHANGE VARIAVLE NAMES
+        let targetPosition = null;
+        document.getElementById('main_canvas').addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            // Set the target position
+            targetPosition = { x: mouseX, y: mouseY };
+
+            console.log("Mouse clicked at: ", mouseX, mouseY);
+            console.log("Target position set to: ", targetPosition);
+        });
+
+        // Debugging inside Key_Control_Sprite.run()
+        Key_Control_Sprite.prototype.run = function () {
+            if (targetPosition) {
+                const deltaX = targetPosition.x - this.x_location;
+                const deltaY = targetPosition.y - this.y_location;
+
+                const distance = Math.sqrt(deltaX ** 2 + deltaY ** 2);
+
+                console.log("Current position: ", this.x_location, this.y_location);
+                console.log("Moving towards: ", targetPosition, " Distance: ", distance);
+
+                if (distance < 10) { // Close enough to stop
+                    targetPosition = null;
+                    this.acceleration = [0, 0];
+                    this.set_action('idle');
+                } else {
+                    const speed = 10; // Adjust speed here
+                    this.acceleration[0] = (deltaX / distance) * speed;
+                    this.acceleration[1] = (deltaY / distance) * speed;
+
+                    if (Math.abs(deltaX) > Math.abs(deltaY)) {
+                        this.set_action(deltaX > 0 ? 'walk_E' : 'walk_W');
+                        // this.set_direction(deltaX > 0 ? 'East' : 'West');
+                        // this.draw_or_load_the_damn_thing()
+                    } else {
+                        this.set_action(deltaY > 0 ? 'walk_S' : 'walk_N');
+                        //this.set_direction(deltaY > 0 ? 'South' : 'North');
+                        //this.draw_or_load_the_damn_thing()
+                    }
+                }
+            } else {
+                this.set_direction(current_state); // Continue supporting keyboard control
+            }
+
+
+
+            Sprite.prototype.run.call(this);
+
+
+        };
+
+
+
+
+
+
+
+        class Bouncy extends Sprite {
+
+            constructor(jsonfile, x, y, sprite_name) {
+                super(jsonfile, x, y, sprite_name);
+                var direction = this.getDirection();
+
+                this.set_direction(direction);
+
+            }
+
+            getDirection() {
+                const dirs = ['North', 'South', 'West', 'East', 'SEast', 'NEast', 'SWest', 'NWest'];
+                let i = Math.floor(Math.random() * dirs.length);
+
+                return dirs[i];
+            }
+
+            run() {
+                super.run(); 
+            }
+
+            on_bound_hit_north() {
+                super.on_bound_hit_north();
+                this.set_direction(this.getDirection());
+                console.log(`${this.sprite_name} hit the north boundary`);
+            }
+            on_bound_hit_south() {
+                super.on_bound_hit_south();
+                this.set_direction(this.getDirection());
+                console.log(`${this.sprite_name} hit the south boundary`);
+            }
+            on_bound_hit_west() {
+                super.on_bound_hit_west();
+                this.set_direction(this.getDirection());
+                console.log(`${this.sprite_name} hit the west boundary`);
+            }
+            on_bound_hit_east() {
+                super.on_bound_hit_east();
+                this.set_direction(this.getDirection());
+                console.log(`${this.sprite_name} hit the east boundary`);
+            }
+        }
+
+        var do_i_need_to_redraw = true;
+        var background_img = null;
+
+        function redraw_background() {
+            if (do_i_need_to_redraw) {
+                var c = document.getElementById("main_canvas");
+                var ctx = c.getContext("2d");
+                ctx.drawImage(background_img, 0, 0, window.innerWidth, window.innerHeight);
+
+                var num_of_sprites = mysprites.length;
+                for (i = 0; i < num_of_sprites; i++) {
+                    mysprites[i].clipboard = null;
+                }
+            }
+            do_i_need_to_redraw = false;
+        }
+
+        function run_loop() {
+
+            var cur_time = Date.now();
+
+            if ((cur_time - last_run_loop) >= (1000 / 10)) {
+                do_i_need_to_redraw = true;
+                redraw_background();
+                var num_of_sprites = mysprites.length;
+                for (i = 0; i < num_of_sprites; i++) {
+                    mysprites[i].run();
+                }
+                last_run_loop = cur_time;
+            }
+            requestAnimationFrame(run_loop);
+        }
+        
+        var mysprites = [];
+        var last_run_loop;
+
+        var north_background_img = null;
+
+        function setup() {
+            console.log(random(window.innerWidth));
+        }
+
+        $(document).ready(function () {
+
+            background_img = new Image();
+            background_img.src = 'Penguins/Imgs/IceSparkleBackground.png'; //CHANGE to our background img
+
+            north_background_img = new Image();
+            north_background_img.src = 'Penguins/Imgs/IceSparkleBackground.png'; //CHANGE to our North img
+
+            mysprites.push(new Key_Control_Sprite("Penguins/animationData.json", 350, 350, 'TenderBud'));
+
+            for (i = 0; i < 20; ++i) {
+                mysprites.push(new Bouncy("Penguins/animationData.json", random(window.innerWidth), random(window.innerHeight), 'TenderBud')); 
+
+            }
+            last_run_loop = Date.now();
+            requestAnimationFrame(run_loop);
+
+            console.log(random(window.innerWidth));
+        });
+
+
+
+    </script>
+</body>
+
+</html>
+
