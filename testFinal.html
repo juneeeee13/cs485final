@@ -105,6 +105,18 @@
                 case "ArrowDown":
                     current_state = "South";
                     break;
+                case "a":
+                    current_state = "West";
+                    break;
+                case "d":
+                    current_state = "East";
+                    break;
+                case "w":
+                    current_state = "North";
+                    break;
+                case "s":
+                    current_state = "South";
+                    break;
             }
         })
         //Above was }); (deleted ;)
@@ -732,6 +744,12 @@
             //Triggers background sound if arrow keys clicked first
             document.addEventListener('keydown', (e) => {
                 if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+                    audio.play();
+                }
+            }, { once: true });
+            //Triggers background sound if wasd keys clicked first
+            document.addEventListener('keydown', (e) => {
+                if (['a', 'd', 'w', 's'].includes(e.key)) {
                     audio.play();
                 }
             }, { once: true });
